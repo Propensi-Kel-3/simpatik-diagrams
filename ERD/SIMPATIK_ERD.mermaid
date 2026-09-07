@@ -1,0 +1,257 @@
+erDiagram
+
+    users {
+        BIGINT id PK
+        BIGINT employee_id FK
+        VARCHAR email
+        VARCHAR password
+        ENUM role
+        BOOLEAN is_active
+        INT failed_login_attempts
+        TIMESTAMP locked_until
+        TIMESTAMP last_login_at
+        TIMESTAMP created_at
+        TIMESTAMP updated_at
+    }
+
+    password_reset_tokens {
+        BIGINT id PK
+        BIGINT user_id FK
+        VARCHAR token
+        TIMESTAMP expires_at
+        TIMESTAMP used_at
+    }
+
+    employees {
+        BIGINT id PK
+        VARCHAR nip UK
+        VARCHAR first_name
+        VARCHAR last_name
+        ENUM gender
+        DATE birth_date
+        VARCHAR birth_place
+        VARCHAR phone_number
+        TEXT domicile_address
+        VARCHAR bank_account_number
+        VARCHAR bank_name
+        VARCHAR profile_photo
+        ENUM employment_status
+        DATE join_date
+        TIMESTAMP created_at
+        TIMESTAMP updated_at
+    }
+
+    work_units {
+        BIGINT id PK
+        VARCHAR name
+        VARCHAR code
+        TEXT description
+    }
+
+    grades {
+        BIGINT id PK
+        VARCHAR name
+        VARCHAR code
+        INT level
+    }
+
+    positions {
+        BIGINT id PK
+        VARCHAR name
+        BIGINT work_unit_id FK
+    }
+
+    leave_types {
+        BIGINT id PK
+        VARCHAR name
+        INT max_days_per_year
+        BOOLEAN requires_document
+    }
+
+    events {
+        BIGINT id PK
+        VARCHAR name
+        INT year
+        TEXT description
+    }
+
+    employee_position_histories {
+        BIGINT id PK
+        BIGINT employee_id FK
+        BIGINT position_id FK
+        BIGINT grade_id FK
+        BIGINT work_unit_id FK
+        BIGINT supervisor_id FK
+        DATE start_date
+        DATE end_date
+        BOOLEAN is_current
+    }
+
+    employee_education_histories {
+        BIGINT id PK
+        BIGINT employee_id FK
+        VARCHAR education_level
+        VARCHAR institution_name
+        VARCHAR major
+        INT graduation_year
+    }
+
+    employee_families {
+        BIGINT id PK
+        BIGINT employee_id FK
+        VARCHAR name
+        ENUM relationship
+        DATE birth_date
+        ENUM gender
+    }
+
+    attendance_events {
+        BIGINT id PK
+        BIGINT employee_id FK
+        TIMESTAMP event_timestamp
+        ENUM event_type
+        JSON raw_payload
+        BOOLEAN is_duplicate
+        TIMESTAMP created_at
+    }
+
+    attendance_records {
+        BIGINT id PK
+        BIGINT employee_id FK
+        DATE record_date
+        TIME check_in_time
+        TIME check_out_time
+        DECIMAL total_work_hours
+        ENUM status
+        TIMESTAMP created_at
+    }
+
+    leave_balances {
+        BIGINT id PK
+        BIGINT employee_id FK
+        BIGINT leave_type_id FK
+        INT year
+        INT total_days
+        INT used_days
+        INT remaining_days
+    }
+
+    leave_requests {
+        BIGINT id PK
+        BIGINT employee_id FK
+        BIGINT leave_type_id FK
+        DATE start_date
+        DATE end_date
+        INT working_days_count
+        TEXT reason
+        VARCHAR document_path
+        ENUM status
+        BIGINT reviewed_by FK
+        TEXT review_note
+        TIMESTAMP reviewed_at
+        TIMESTAMP created_at
+        TIMESTAMP updated_at
+    }
+
+    training_records {
+        BIGINT id PK
+        BIGINT employee_id FK
+        VARCHAR training_name
+        VARCHAR organizer
+        DATE start_date
+        DATE end_date
+        VARCHAR certificate_path
+        TIMESTAMP created_at
+    }
+
+    event_participations {
+        BIGINT id PK
+        BIGINT employee_id FK
+        BIGINT event_id FK
+        VARCHAR role
+        TIMESTAMP created_at
+    }
+
+    appraisal_cycles {
+        BIGINT id PK
+        VARCHAR name
+        INT year
+        DATE start_date
+        DATE end_date
+        ENUM status
+    }
+
+    self_assessments {
+        BIGINT id PK
+        BIGINT employee_id FK
+        BIGINT appraisal_cycle_id FK
+        DECIMAL primary_tasks_score
+        DECIMAL additional_tasks_score
+        DECIMAL self_development_score
+        TEXT overall_note
+        TIMESTAMP submitted_at
+        BOOLEAN is_locked
+        TIMESTAMP created_at
+        TIMESTAMP updated_at
+    }
+
+    appraisal_reviews {
+        BIGINT id PK
+        BIGINT self_assessment_id FK
+        BIGINT supervisor_id FK
+        DECIMAL behavioral_score
+        TEXT overall_feedback
+        DECIMAL final_score
+        BOOLEAN is_finalized
+        TIMESTAMP finalized_at
+        TIMESTAMP created_at
+        TIMESTAMP updated_at
+    }
+
+    appraisal_feedback_threads {
+        BIGINT id PK
+        BIGINT appraisal_review_id FK
+        BIGINT author_id FK
+        TEXT comment
+        TIMESTAMP created_at
+    }
+
+    %% ── Auth ──────────────────────────────────────────────────
+    employees       ||--||  users                       : "has account"
+    users           ||--o{  password_reset_tokens       : "requests"
+
+    %% ── Org structure ─────────────────────────────────────────
+    work_units      ||--o{  positions                   : "contains"
+
+    %% ── Employee histories ────────────────────────────────────
+    employees       ||--o{  employee_position_histories : "employee_id"
+    employees       ||--o{  employee_position_histories : "supervisor_id"
+    positions       ||--o{  employee_position_histories : "assigned to"
+    grades          ||--o{  employee_position_histories : "ranked by"
+    work_units      ||--o{  employee_position_histories : "unit"
+    employees       ||--o{  employee_education_histories: "has"
+    employees       ||--o{  employee_families           : "has"
+
+    %% ── Attendance ────────────────────────────────────────────
+    employees       ||--o{  attendance_events           : "logs"
+    employees       ||--o{  attendance_records          : "has"
+
+    %% ── Leave ─────────────────────────────────────────────────
+    employees       ||--o{  leave_balances              : "has"
+    leave_types     ||--o{  leave_balances              : "defines"
+    employees       ||--o{  leave_requests              : "employee_id"
+    employees       ||--o{  leave_requests              : "reviewed_by"
+    leave_types     ||--o{  leave_requests              : "categorizes"
+
+    %% ── Training & Events ─────────────────────────────────────
+    employees       ||--o{  training_records            : "attended"
+    employees       ||--o{  event_participations        : "participates"
+    events          ||--o{  event_participations        : "has"
+
+    %% ── Appraisals ────────────────────────────────────────────
+    employees       ||--o{  self_assessments            : "completes"
+    appraisal_cycles||--o{  self_assessments            : "contains"
+    self_assessments||--||  appraisal_reviews           : "reviewed as"
+    employees       ||--o{  appraisal_reviews           : "supervisor_id"
+    appraisal_reviews||--o{ appraisal_feedback_threads  : "has"
+    employees       ||--o{  appraisal_feedback_threads  : "author_id"
