@@ -1,5 +1,9 @@
 erDiagram
 
+    %% ══════════════════════════════════════════════
+    %%  AUTH
+    %% ══════════════════════════════════════════════
+
     users {
         BIGINT id PK
         BIGINT employee_id FK
@@ -22,24 +26,45 @@ erDiagram
         TIMESTAMP used_at
     }
 
+    %% ══════════════════════════════════════════════
+    %%  CORE EMPLOYEE  (Struktur Data Master Pgw +
+    %%                  Template Laporan Master Pgw)
+    %% ══════════════════════════════════════════════
+
     employees {
         BIGINT id PK
         VARCHAR nip UK
+        VARCHAR nik UK
         VARCHAR first_name
         VARCHAR last_name
         ENUM gender
         DATE birth_date
         VARCHAR birth_place
+        ENUM marital_status
+        VARCHAR citizenship
         VARCHAR phone_number
+        VARCHAR home_phone
+        VARCHAR emergency_phone
         TEXT domicile_address
+        TEXT ktp_address
         VARCHAR bank_account_number
         VARCHAR bank_name
+        VARCHAR npwp_number
+        VARCHAR dplk_number
+        VARCHAR jamsostek_number
         VARCHAR profile_photo
         ENUM employment_status
         DATE join_date
+        INT retirement_year
         TIMESTAMP created_at
         TIMESTAMP updated_at
     }
+
+    %% ══════════════════════════════════════════════
+    %%  ORG STRUCTURE
+    %%  (Field Satker  →  work_units)
+    %%  (Field Gol.,Jab.,Grd  →  grades + positions)
+    %% ══════════════════════════════════════════════
 
     work_units {
         BIGINT id PK
@@ -53,6 +78,8 @@ erDiagram
         VARCHAR name
         VARCHAR code
         INT level
+        INT golongan
+        VARCHAR title
     }
 
     positions {
@@ -61,19 +88,12 @@ erDiagram
         BIGINT work_unit_id FK
     }
 
-    leave_types {
-        BIGINT id PK
-        VARCHAR name
-        INT max_days_per_year
-        BOOLEAN requires_document
-    }
-
-    events {
-        BIGINT id PK
-        VARCHAR name
-        INT year
-        TEXT description
-    }
+    %% ══════════════════════════════════════════════
+    %%  EMPLOYEE HISTORIES
+    %%  (Strukt. Data Historis Satker  ─┐
+    %%   Struktur Data Historis Golongan─┤ → employee_position_histories)
+    %%   Strukt. Data Historis Jabatan  ─┘
+    %% ══════════════════════════════════════════════
 
     employee_position_histories {
         BIGINT id PK
@@ -92,6 +112,7 @@ erDiagram
         BIGINT employee_id FK
         VARCHAR education_level
         VARCHAR institution_name
+        VARCHAR faculty
         VARCHAR major
         INT graduation_year
     }
@@ -101,9 +122,15 @@ erDiagram
         BIGINT employee_id FK
         VARCHAR name
         ENUM relationship
+        VARCHAR birth_place
         DATE birth_date
+        DATE death_date
         ENUM gender
     }
+
+    %% ══════════════════════════════════════════════
+    %%  ATTENDANCE
+    %% ══════════════════════════════════════════════
 
     attendance_events {
         BIGINT id PK
@@ -124,6 +151,17 @@ erDiagram
         DECIMAL total_work_hours
         ENUM status
         TIMESTAMP created_at
+    }
+
+    %% ══════════════════════════════════════════════
+    %%  LEAVE
+    %% ══════════════════════════════════════════════
+
+    leave_types {
+        BIGINT id PK
+        VARCHAR name
+        INT max_days_per_year
+        BOOLEAN requires_document
     }
 
     leave_balances {
@@ -153,15 +191,35 @@ erDiagram
         TIMESTAMP updated_at
     }
 
+    %% ══════════════════════════════════════════════
+    %%  TRAINING  (Struktur Data Historis PMK)
+    %%  JENIS PMK : SERTIFIKASI / TEKNIS / SOFT_SKILL
+    %%  METODE    : OFFLINE / ONLINE
+    %% ══════════════════════════════════════════════
+
     training_records {
         BIGINT id PK
         BIGINT employee_id FK
+        ENUM training_type
         VARCHAR training_name
+        VARCHAR topic
         VARCHAR organizer
+        ENUM method
         DATE start_date
         DATE end_date
         VARCHAR certificate_path
         TIMESTAMP created_at
+    }
+
+    %% ══════════════════════════════════════════════
+    %%  EVENTS
+    %% ══════════════════════════════════════════════
+
+    events {
+        BIGINT id PK
+        VARCHAR name
+        INT year
+        TEXT description
     }
 
     event_participations {
@@ -171,6 +229,10 @@ erDiagram
         VARCHAR role
         TIMESTAMP created_at
     }
+
+    %% ══════════════════════════════════════════════
+    %%  APPRAISALS
+    %% ══════════════════════════════════════════════
 
     appraisal_cycles {
         BIGINT id PK
@@ -216,6 +278,28 @@ erDiagram
         TIMESTAMP created_at
     }
 
+    %% ══════════════════════════════════════════════
+    %%  PERFORMANCE VALUE DECISION  (Laporan Nilai Kinerja)
+    %%  4-stage committee approval:
+    %%    1. unit_proposal      (Usul Satker)
+    %%    2. head_confirmation  (Konfirmasi Pimp. Satker)
+    %%    3. committee_proposal (Usul Kom. SDM)
+    %%    4. board_decision     (Kep. Pengurus) → final_value + predicate
+    %% ══════════════════════════════════════════════
+
+    performance_value_decisions {
+        BIGINT id PK
+        BIGINT self_assessment_id FK
+        DECIMAL unit_proposal_value
+        DECIMAL head_confirmation_value
+        DECIMAL committee_proposal_value
+        DECIMAL final_value
+        ENUM final_predicate
+        TEXT notes
+        TIMESTAMP created_at
+        TIMESTAMP updated_at
+    }
+
     %% ── Auth ──────────────────────────────────────────────────
     employees       ||--||  users                       : "has account"
     users           ||--o{  password_reset_tokens       : "requests"
@@ -255,3 +339,6 @@ erDiagram
     employees       ||--o{  appraisal_reviews           : "supervisor_id"
     appraisal_reviews||--o{ appraisal_feedback_threads  : "has"
     employees       ||--o{  appraisal_feedback_threads  : "author_id"
+
+    %% ── Performance Value Decisions ───────────────────────────
+    self_assessments||--o|  performance_value_decisions : "decided as"
